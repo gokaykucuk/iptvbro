@@ -69,111 +69,117 @@ export function AppliedFilterBar() {
   ] as [QuickKey, boolean][]).filter(([, on]) => on);
 
   return (
-    <div className="flex h-11 items-center gap-2 border-b border-border bg-surface px-3">
-      <div className="shrink-0 text-[12px]">
-        <span className="font-mono tabular-nums text-fg">{compactNumber(resultCount)}</span>{' '}
-        <span className="text-dim">channels</span>
-      </div>
+    <div className="flex flex-col gap-1.5 border-b border-border bg-surface px-3 py-2">
+      {/* Row 1 — result count + sort + view toggle. Stays a single, fixed line. */}
+      <div className="flex h-7 items-center gap-2">
+        <div className="shrink-0 text-[12px]">
+          <span className="font-mono tabular-nums text-fg">{compactNumber(resultCount)}</span>{' '}
+          <span className="text-dim">channels</span>
+        </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-        {search.trim() !== '' && (
-          <Token label={`“${search}”`} onRemove={() => setSearch('')} removeLabel="Clear search" />
-        )}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="h-7 rounded-md px-2 text-[12px] text-muted transition-colors hover:text-fg focus-visible:text-fg"
+            >
+              Clear all
+            </button>
+          )}
 
-        {countries.map((code) => {
-          const facet = countryLabels.get(code);
-          const flag = facet?.meta ?? '';
-          const name = facet?.label ?? code;
-          return (
-            <Token
-              key={`country-${code}`}
-              label={`${flag} ${name}`.trim()}
-              onRemove={() => toggleFacet('countries', code)}
-              removeLabel={`Remove ${name} filter`}
-            />
-          );
-        })}
+          <label className="flex items-center gap-1.5">
+            <span className="eyebrow">Sort</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              aria-label="Sort channels"
+              className="h-7 rounded-md bg-surface-2 px-2 text-[12px] text-muted transition-colors hover:text-fg focus-visible:text-fg"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        {categories.map((name) => {
-          const label = categoryLabels.get(name)?.label ?? name;
-          const swatch = categoryLabels.get(name)?.meta ?? categorySwatch(name);
-          return (
-            <Token
-              key={`category-${name}`}
-              onRemove={() => toggleFacet('categories', name)}
-              removeLabel={`Remove ${label} filter`}
-              label={
-                <>
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: swatch }}
-                    aria-hidden="true"
-                  />
-                  {label}
-                </>
-              }
-            />
-          );
-        })}
-
-        {languages.map((code) => {
-          const name = languageLabels.get(code)?.label ?? code;
-          return (
-            <Token
-              key={`language-${code}`}
-              label={name}
-              onRemove={() => toggleFacet('languages', code)}
-              removeLabel={`Remove ${name} filter`}
-            />
-          );
-        })}
-
-        {quickActive.map(([key]) => (
-          <Token
-            key={`quick-${key}`}
-            label={QUICK_LABELS[key]}
-            onRemove={() => setQuick(key, false)}
-            removeLabel={`Remove ${QUICK_LABELS[key]} filter`}
-          />
-        ))}
-      </div>
-
-      <div className="ml-auto flex shrink-0 items-center gap-2">
-        {activeCount > 0 && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="h-8 rounded-md px-2 text-[12px] text-muted transition-colors hover:text-fg focus-visible:text-fg"
+          <IconButton
+            label={gridMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+            size="sm"
+            active={gridMode === 'grid'}
+            onClick={() => setGridMode(gridMode === 'grid' ? 'list' : 'grid')}
           >
-            Clear all
-          </button>
-        )}
-
-        <label className="flex items-center gap-1.5">
-          <span className="eyebrow">Sort</span>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            aria-label="Sort channels"
-            className="h-8 rounded-md bg-surface-2 px-2 text-[12px] text-muted transition-colors hover:text-fg focus-visible:text-fg"
-          >
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <IconButton
-          label={gridMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
-          size="sm"
-          active={gridMode === 'grid'}
-          onClick={() => setGridMode(gridMode === 'grid' ? 'list' : 'grid')}
-        >
-          {gridMode === 'grid' ? <Grid3x3 size={16} /> : <List size={16} />}
-        </IconButton>
+            {gridMode === 'grid' ? <Grid3x3 size={16} /> : <List size={16} />}
+          </IconButton>
+        </div>
       </div>
+
+      {/* Row 2 — active filter tokens. Only rendered when filters exist; wraps full-width. */}
+      {activeCount > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {search.trim() !== '' && (
+            <Token label={`“${search}”`} onRemove={() => setSearch('')} removeLabel="Clear search" />
+          )}
+
+          {countries.map((code) => {
+            const facet = countryLabels.get(code);
+            const flag = facet?.meta ?? '';
+            const name = facet?.label ?? code;
+            return (
+              <Token
+                key={`country-${code}`}
+                label={`${flag} ${name}`.trim()}
+                onRemove={() => toggleFacet('countries', code)}
+                removeLabel={`Remove ${name} filter`}
+              />
+            );
+          })}
+
+          {categories.map((name) => {
+            const label = categoryLabels.get(name)?.label ?? name;
+            const swatch = categoryLabels.get(name)?.meta ?? categorySwatch(name);
+            return (
+              <Token
+                key={`category-${name}`}
+                onRemove={() => toggleFacet('categories', name)}
+                removeLabel={`Remove ${label} filter`}
+                label={
+                  <>
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: swatch }}
+                      aria-hidden="true"
+                    />
+                    {label}
+                  </>
+                }
+              />
+            );
+          })}
+
+          {languages.map((code) => {
+            const name = languageLabels.get(code)?.label ?? code;
+            return (
+              <Token
+                key={`language-${code}`}
+                label={name}
+                onRemove={() => toggleFacet('languages', code)}
+                removeLabel={`Remove ${name} filter`}
+              />
+            );
+          })}
+
+          {quickActive.map(([key]) => (
+            <Token
+              key={`quick-${key}`}
+              label={QUICK_LABELS[key]}
+              onRemove={() => setQuick(key, false)}
+              removeLabel={`Remove ${QUICK_LABELS[key]} filter`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
