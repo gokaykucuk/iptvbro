@@ -12,6 +12,8 @@ import { SkeletonGrid } from '@/components/SkeletonGrid';
 import { CommandPalette } from '@/components/CommandPalette';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { KeyboardHelp } from '@/components/KeyboardHelp';
+import { Flashcard } from '@/components/Flashcard';
+import { useLearningStore } from '@/learning/store';
 
 export default function App() {
   const theme = useStore((s) => s.theme);
@@ -21,9 +23,31 @@ export default function App() {
   const gridMode = useStore((s) => s.gridMode);
   const setCurrentChannel = useStore((s) => s.setCurrentChannel);
   const loadUrl = useStore((s) => s.loadUrl);
+  const flashcardsEnabled = useLearningStore((s) => s.flashcardsEnabled);
+  const flashcardIntervalMin = useLearningStore((s) => s.flashcardIntervalMin);
   const didBoot = useRef(false);
 
   useKeyboard();
+
+  // Load saved flashcards from IndexedDB on startup.
+  useEffect(() => {
+    void useLearningStore.getState().loadCards();
+  }, []);
+
+  // Periodically surface a due flashcard for review (when not mid-interaction).
+  useEffect(() => {
+    if (!flashcardsEnabled) return;
+    const id = window.setInterval(
+      () => {
+        const ls = useLearningStore.getState();
+        if (ls.selection || ls.flashcard) return;
+        const due = ls.dueCards();
+        if (due.length) ls.showFlashcard(due[0]);
+      },
+      Math.max(1, flashcardIntervalMin) * 60_000,
+    );
+    return () => window.clearInterval(id);
+  }, [flashcardsEnabled, flashcardIntervalMin]);
 
   // Apply the theme to <html> so the CSS custom properties switch.
   useEffect(() => {
@@ -85,6 +109,7 @@ export default function App() {
       <CommandPalette />
       <SettingsSheet />
       <KeyboardHelp />
+      <Flashcard />
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { PlayerControls } from './PlayerControls';
 import { PlayerErrorState } from './PlayerErrorState';
 import { ZapFlashCard } from './ZapFlashCard';
 import { StreamStats } from './StreamStats';
+import { SubtitleOverlay } from './SubtitleOverlay';
+import { WordPopup } from './WordPopup';
 import { ProgressLine } from './ui/ProgressLine';
 
 /** The hero stage: owns the single persistent <video> and all player chrome. */
@@ -86,9 +88,11 @@ export function PlayerStage() {
         </>
       )}
 
+      {currentId && <SubtitleOverlay videoRef={videoRef} chromeVisible={chromeVisible} />}
       <ZapFlashCard />
       <StreamStats />
       <PlayerErrorState controls={api} />
+      <WordPopup />
     </div>
   );
 }

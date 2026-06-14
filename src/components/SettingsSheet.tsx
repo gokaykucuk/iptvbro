@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { X, Trash2, RotateCw, Upload, Link, Download } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { useLearningStore } from '@/learning/store';
+import { downloadAnki } from '@/learning/anki';
 import { IconButton } from '@/components/ui/IconButton';
 import { Switch } from '@/components/ui/Switch';
 import { cn } from '@/lib/cn';
@@ -81,6 +83,21 @@ export function SettingsSheet() {
   const epgEnabled = useStore((s) => s.epgEnabled);
   const setEpgEnabled = useStore((s) => s.setEpgEnabled);
   const epgStatus = useStore((s) => s.epgStatus);
+
+  const apiKey = useLearningStore((s) => s.apiKey);
+  const setApiKey = useLearningStore((s) => s.setApiKey);
+  const baseLanguage = useLearningStore((s) => s.baseLanguage);
+  const setBaseLanguage = useLearningStore((s) => s.setBaseLanguage);
+  const learnModel = useLearningStore((s) => s.model);
+  const setLearnModel = useLearningStore((s) => s.setModel);
+  const flashcardsEnabled = useLearningStore((s) => s.flashcardsEnabled);
+  const setFlashcardsEnabled = useLearningStore((s) => s.setFlashcardsEnabled);
+  const flashcardIntervalMin = useLearningStore((s) => s.flashcardIntervalMin);
+  const setFlashcardIntervalMin = useLearningStore((s) => s.setFlashcardIntervalMin);
+  const cards = useLearningStore((s) => s.cards);
+  const dueCount = useLearningStore((s) => s.cards.filter((c) => c.due <= Date.now()).length);
+  const clearCards = useLearningStore((s) => s.clearCards);
+  const showFlashcard = useLearningStore((s) => s.showFlashcard);
 
   const proxyEnabled = useStore((s) => s.proxyEnabled);
   const setProxyEnabled = useStore((s) => s.setProxyEnabled);
@@ -253,7 +270,115 @@ export function SettingsSheet() {
             />
           </Section>
 
-          {/* 3) Proxy */}
+          {/* 3) Learning */}
+          <Section title="Learning">
+            <label className="block">
+              <div className="mb-1 text-[12px] text-fg">OpenAI API key</div>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-…"
+                autoComplete="off"
+                className={cn(INPUT_CLASS, 'font-mono text-[12px]')}
+              />
+              <div className="mt-1 text-[11px] text-dim">
+                Stored only in this browser; sent directly to OpenAI. Click any subtitle word to learn it.
+              </div>
+            </label>
+
+            <label className="mt-3 block">
+              <div className="mb-1 text-[12px] text-fg">Base language</div>
+              <input
+                list="iptvbro-langs"
+                value={baseLanguage}
+                onChange={(e) => setBaseLanguage(e.target.value)}
+                placeholder="English"
+                className={INPUT_CLASS}
+              />
+              <datalist id="iptvbro-langs">
+                {['English', 'German', 'Spanish', 'French', 'Italian', 'Portuguese', 'Dutch', 'Turkish', 'Russian', 'Polish', 'Japanese', 'Korean', 'Chinese', 'Arabic'].map(
+                  (l) => (
+                    <option key={l} value={l} />
+                  ),
+                )}
+              </datalist>
+              <div className="mt-1 text-[11px] text-dim">Word explanations are written in this language.</div>
+            </label>
+
+            <label className="mt-3 block">
+              <div className="mb-1 text-[12px] text-fg">Model</div>
+              <input
+                value={learnModel}
+                onChange={(e) => setLearnModel(e.target.value)}
+                placeholder="gpt-5.4-nano"
+                className={cn(INPUT_CLASS, 'font-mono text-[12px]')}
+              />
+            </label>
+
+            <div className="mt-4 border-t border-border pt-3">
+              <SwitchRow
+                label="Review flashcards"
+                hint="Periodically resurface learned words for spaced repetition"
+                checked={flashcardsEnabled}
+                onChange={setFlashcardsEnabled}
+              />
+              {flashcardsEnabled && (
+                <label className="flex items-center justify-between py-2 text-[12px] text-muted">
+                  <span>Show every (minutes)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={flashcardIntervalMin}
+                    onChange={(e) => setFlashcardIntervalMin(Number(e.target.value) || 6)}
+                    className="h-8 w-20 rounded-md bg-surface-2 px-2 text-right text-[13px] text-fg"
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="mt-3 border-t border-border pt-3">
+              <div className="mb-2 text-[12px] text-muted">
+                <span className="font-mono text-fg">{cards.length}</span> saved ·{' '}
+                <span className="font-mono text-fg">{dueCount}</span> due
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={!cards.length}
+                  onClick={() => {
+                    const due = cards.filter((c) => c.due <= Date.now());
+                    showFlashcard(due[0] ?? cards[0]);
+                    setSettingsOpen(false);
+                  }}
+                  className={cn(BTN_SECONDARY, 'disabled:opacity-40')}
+                >
+                  Review now
+                </button>
+                <button
+                  type="button"
+                  disabled={!cards.length}
+                  onClick={() => downloadAnki(cards)}
+                  className={cn(BTN_SECONDARY, 'gap-2 disabled:opacity-40')}
+                >
+                  <Download size={16} />
+                  Export Anki
+                </button>
+                <button
+                  type="button"
+                  disabled={!cards.length}
+                  onClick={() => {
+                    if (window.confirm('Delete all saved cards?')) void clearCards();
+                  }}
+                  className={cn(BTN_BASE, 'bg-surface-2 text-dead hover:bg-hover disabled:opacity-40')}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </Section>
+
+          {/* 4) Proxy */}
           <Section title="Proxy">
             <SwitchRow
               label="Use stream proxy"

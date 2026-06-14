@@ -3,6 +3,7 @@ import { useStore } from '@/store/useStore';
 import { getFilteredIndices } from '@/store/selectors';
 import { positionOfId } from '@/lib/zap';
 import { playerApi } from '@/player/api';
+import { useLearningStore } from '@/learning/store';
 
 /**
  * Global keyboard layer. Mount once. Handles zapping, transport, search focus,
@@ -22,9 +23,11 @@ export function useKeyboard(): void {
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT' ||
           target.isContentEditable);
-      const anyModal = s.commandOpen || s.settingsOpen || s.helpOpen;
+      const wordPopupOpen = useLearningStore.getState().selection !== null;
+      const anyModal = s.commandOpen || s.settingsOpen || s.helpOpen || wordPopupOpen;
 
       if (e.key === 'Escape') {
+        if (wordPopupOpen) return; // the word popup handles its own Escape
         if (s.commandOpen) return s.setCommandOpen(false);
         if (s.settingsOpen) return s.setSettingsOpen(false);
         if (s.helpOpen) return s.setHelpOpen(false);

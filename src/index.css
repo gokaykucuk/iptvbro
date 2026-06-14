@@ -198,6 +198,18 @@
     -webkit-user-drag: none;
     user-select: none;
   }
+
+  /* Suppress the browser's native subtitle rendering — we draw a custom,
+     clickable overlay (SubtitleOverlay) positioned above the player controls.
+     Cues stay active (mode 'showing') so cuechange/activeCues still work. */
+  video::cue {
+    color: transparent;
+    background-color: transparent;
+    text-shadow: none;
+  }
+  video::-webkit-media-text-track-container {
+    display: none !important;
+  }
 }
 
 @layer components {
