@@ -1,0 +1,57 @@
+{
+  "name": "iptvbro",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A professional, open-source IPTV browser & viewer. Load any M3U playlist and get the best viewing experience.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/gokaykucuk/iptvbro",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gokaykucuk/iptvbro.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gokaykucuk/iptvbro/issues"
+  },
+  "keywords": [
+    "iptv",
+    "m3u",
+    "hls",
+    "player",
+    "tv",
+    "streaming",
+    "react",
+    "viewer"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "proxy": "node server/proxy.mjs",
+    "dev:full": "node server/proxy.mjs & vite"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.14.2",
+    "clsx": "^2.1.1",
+    "hls.js": "^1.6.16",
+    "lucide-react": "^1.18.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwind-merge": "^3.6.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16"
+  }
+}
