@@ -76,12 +76,6 @@ export function WordPopup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [word, sentence]);
 
-  // Auto-scroll as content streams.
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [text]);
-
   const close = () => {
     const resume = selection?.wasPlaying;
     closeWord();
