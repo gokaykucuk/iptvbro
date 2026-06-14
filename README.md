@@ -6,6 +6,8 @@
 
 Load any M3U playlist — including the [iptv-org](https://github.com/iptv-org/iptv) catalogue of ~12,000 free channels — and get a fast, cinematic viewing experience in your browser.
 
+[![CI](https://github.com/gokaykucuk/iptvbro/actions/workflows/ci.yml/badge.svg)](https://github.com/gokaykucuk/iptvbro/actions/workflows/ci.yml) · [**Live demo →**](https://gokaykucuk.github.io/iptvbro/) · [MIT](./LICENSE)
+
 </div>
 
 ---
@@ -17,6 +19,8 @@ Load any M3U playlist — including the [iptv-org](https://github.com/iptv-org/i
 - 🌍 **Three-axis faceting** — filter by **country** (with flags), **category**, and **language**, with live counts that recompute against your other selections.
 - ⌨️ **Keyboard-native** — `↑ ↓` to zap, `0–9` to jump to a channel number, `/` to search, `⌘K` for the command palette, `Space` `M` `F` `P` for transport, and more.
 - 🩺 **Stream-health system** — every channel shows a live / geo-blocked / offline / needs-proxy state. iptvbro learns from playback and never dead-ends: failed streams offer **Retry**, **Next channel**, and a one-tap **proxy** rescue.
+- 📺 **Program guide (EPG)** — optional XMLTV now/next with a live progress bar, parsed off the main thread in a Web Worker (gzip handled via `DecompressionStream`).
+- 📲 **Installable PWA** — works offline (app shell + enrichment metadata are cached; live streams never are).
 - 🎨 **Three real themes** — a cinematic dark default, a true OLED black, and a genuine light mode (the player always stays near-black).
 - 🔌 **Optional zero-dependency proxy** — unlocks streams that need CORS bypass or custom `Referer` / `User-Agent` headers.
 - 💾 **Remembers everything** — favorites, recently watched, last channel, filters and settings persist locally; the parsed playlist is cached in IndexedDB for instant reloads.
@@ -92,6 +96,7 @@ React 19 · TypeScript · Vite · Tailwind CSS v4 · hls.js · Zustand · TanSta
 ## Notes & limitations
 
 - iptv-org is a community catalogue of **publicly available** streams. Many are geo-blocked, intermittent, or offline — iptvbro is designed to make that flaky reality feel solid, but it can't make a dead stream play.
+- The **program guide (EPG)** is opt-in (Settings → Playback). If the playlist's guide host doesn't send CORS headers, enable the proxy — EPG then loads through it, just like streams.
 - This project does **not** host, bundle, or endorse any streams. You bring the playlist.
 
 ## License

@@ -78,6 +78,9 @@ export function SettingsSheet() {
   const autoNextOnFailure = useStore((s) => s.autoNextOnFailure);
   const nsfwGate = useStore((s) => s.nsfwGate);
   const setSetting = useStore((s) => s.setSetting);
+  const epgEnabled = useStore((s) => s.epgEnabled);
+  const setEpgEnabled = useStore((s) => s.setEpgEnabled);
+  const epgStatus = useStore((s) => s.epgStatus);
 
   const proxyEnabled = useStore((s) => s.proxyEnabled);
   const setProxyEnabled = useStore((s) => s.setProxyEnabled);
@@ -235,6 +238,18 @@ export function SettingsSheet() {
               hint="Loads extra data from iptv-org"
               checked={nsfwGate}
               onChange={(v) => setSetting('nsfwGate', v)}
+            />
+            <SwitchRow
+              label="Program guide (EPG)"
+              hint={
+                epgEnabled && epgStatus === 'loading'
+                  ? 'Loading guide…'
+                  : epgEnabled && epgStatus === 'error'
+                    ? 'Guide unavailable for this playlist'
+                    : 'Show now/next from the playlist’s XMLTV guide'
+              }
+              checked={epgEnabled}
+              onChange={setEpgEnabled}
             />
           </Section>
 

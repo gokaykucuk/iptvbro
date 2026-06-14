@@ -12,6 +12,7 @@ export const DEFAULT_PROXY_URL = 'http://localhost:8788';
 /** Cache lifetimes. */
 export const PLAYLIST_TTL_MS = 6 * 60 * 60 * 1000; // 6h
 export const ENRICH_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+export const EPG_TTL_MS = 60 * 60 * 1000; // 1h — program guide goes stale fast
 
 /**
  * Category swatch — a single small marker color in the category facet list.

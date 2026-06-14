@@ -4,6 +4,8 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Pill, QualityPill } from '@/components/ui/Pill';
 import { LazyLogo } from '@/components/LazyLogo';
 import { codeToFlag } from '@/lib/format';
+import { clock } from '@/lib/epg';
+import { useNowNext } from '@/hooks/useNowNext';
 import { cn } from '@/lib/cn';
 
 /** Bottom now-playing strip rendered inside the player stage. Parent positions it. */
@@ -14,6 +16,7 @@ export function ChannelInfoOverlay({ visible }: { visible: boolean }) {
   const toggleFavorite = useStore((s) => s.toggleFavorite);
 
   const channel = id && catalog ? catalog.channels[catalog.byId.get(id) ?? -1] ?? null : null;
+  const { now, next, progress } = useNowNext(channel);
   if (!channel) return null;
 
   const isFavorite = favorites.includes(channel.id);
@@ -56,6 +59,23 @@ export function ChannelInfoOverlay({ visible }: { visible: boolean }) {
             {channel.geoBlocked && <Pill variant="geo">Geo</Pill>}
             {channel.not247 && <Pill variant="default">Not 24/7</Pill>}
           </div>
+
+          {now && (
+            <div className="mt-1.5 max-w-md">
+              <div className="flex items-center gap-2 text-[12px]">
+                <span className="truncate text-fg">{now.title}</span>
+                <span className="shrink-0 font-mono text-[11px] text-dim">
+                  {clock(now.start)}–{clock(now.stop)}
+                </span>
+              </div>
+              <div className="mt-1 h-0.5 w-full max-w-[260px] overflow-hidden rounded-full bg-surface-3">
+                <div className="h-full bg-accent" style={{ width: `${Math.round(progress * 100)}%` }} />
+              </div>
+              {next && (
+                <div className="mt-1 truncate text-[11px] text-dim">Next · {next.title}</div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="ml-auto shrink-0">

@@ -7,6 +7,7 @@ import type {
   HealthStatus,
   PlayState,
   PlayerError,
+  Programme,
   QualityLevel,
   RecentEntry,
   SavedPlaylist,
@@ -15,7 +16,8 @@ import type {
   ViewKey,
   ProxyPolicy,
 } from '@/types';
-import { DEFAULT_PLAYLIST_URL, DEFAULT_PROXY_URL } from '@/lib/constants';
+import { DEFAULT_PLAYLIST_URL, DEFAULT_PROXY_URL, EPG_TTL_MS } from '@/lib/constants';
+import { idbGetFresh, idbSetFresh } from '@/lib/idb';
 import { loadPlaylistFromUrl, loadPlaylistFromText } from '@/lib/loadPlaylist';
 import {
   applyChannelMeta,
@@ -25,6 +27,7 @@ import {
 } from '@/lib/enrich';
 
 export type ParseStatus = 'idle' | 'loading' | 'enriching' | 'ready' | 'error';
+export type EpgStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 const MAX_RECENTS = 40;
 
@@ -36,6 +39,11 @@ export interface StoreState {
   health: Map<string, HealthRecord>;
   catalogVersion: number;
   healthVersion: number;
+
+  // ---- EPG ----
+  epgByChannel: Map<string, Programme[]>;
+  epgStatus: EpgStatus;
+  epgVersion: number;
 
   // ---- filter (persisted) ----
   search: string;
@@ -82,6 +90,7 @@ export interface StoreState {
   autoplay: boolean;
   autoNextOnFailure: boolean;
   nsfwGate: boolean;
+  epgEnabled: boolean;
   savedPlaylists: SavedPlaylist[];
 
   // ---- ephemeral UI ----
@@ -95,6 +104,7 @@ export interface StoreState {
   loadFile: (text: string, name: string) => void;
   reload: () => Promise<void>;
   enrich: () => Promise<void>;
+  loadEpg: () => Promise<void>;
   setHealth: (id: string, status: HealthStatus) => void;
 
   setSearch: (s: string) => void;
@@ -132,6 +142,7 @@ export interface StoreState {
     key: K,
     v: boolean,
   ) => void;
+  setEpgEnabled: (v: boolean) => void;
   removeSavedPlaylist: (id: string) => void;
 
   setCommandOpen: (v: boolean) => void;
@@ -149,6 +160,10 @@ export const useStore = create<StoreState>()(
       health: new Map(),
       catalogVersion: 0,
       healthVersion: 0,
+
+      epgByChannel: new Map(),
+      epgStatus: 'idle',
+      epgVersion: 0,
 
       search: '',
       countries: [],
@@ -191,6 +206,7 @@ export const useStore = create<StoreState>()(
       autoplay: true,
       autoNextOnFailure: false,
       nsfwGate: false,
+      epgEnabled: false,
       savedPlaylists: [],
 
       commandOpen: false,
@@ -274,6 +290,61 @@ export const useStore = create<StoreState>()(
         } catch {
           /* enrichment is non-blocking; the app works without it */
         }
+        void get().loadEpg();
+      },
+
+      loadEpg: async () => {
+        const s = get();
+        const cat = s.catalog;
+        if (!cat?.epgUrl || !s.epgEnabled || s.epgStatus === 'loading') return;
+        const cacheKey = `epg:${cat.epgUrl}`;
+        set({ epgStatus: 'loading' });
+
+        const cached = await idbGetFresh<[string, Programme[]][]>(cacheKey, EPG_TTL_MS);
+        if (cached) {
+          set((st) => ({ epgByChannel: new Map(cached), epgStatus: 'ready', epgVersion: st.epgVersion + 1 }));
+          return;
+        }
+
+        // XMLTV channel ids match the full tvg-id (with @quality), so key on that.
+        const wanted = new Set<string>();
+        for (const ch of cat.channels) if (ch.tvgId) wanted.add(ch.tvgId);
+
+        // The guide is often CORS-restricted (like streams); route via the proxy when enabled.
+        const gzip = cat.epgUrl.toLowerCase().split('?')[0].endsWith('.gz');
+        const fetchUrl =
+          s.proxyEnabled && s.proxyUrl
+            ? `${s.proxyUrl.replace(/\/+$/, '')}/proxy?url=${encodeURIComponent(cat.epgUrl)}`
+            : cat.epgUrl;
+
+        try {
+          const worker = new Worker(new URL('../workers/epgWorker.ts', import.meta.url), {
+            type: 'module',
+          });
+          worker.onmessage = (
+            e: MessageEvent<{ ok: boolean; entries?: [string, Programme[]][]; error?: string }>,
+          ) => {
+            const data = e.data;
+            if (data.ok && data.entries) {
+              set((st) => ({
+                epgByChannel: new Map(data.entries),
+                epgStatus: 'ready',
+                epgVersion: st.epgVersion + 1,
+              }));
+              void idbSetFresh(cacheKey, data.entries);
+            } else {
+              set({ epgStatus: 'error' });
+            }
+            worker.terminate();
+          };
+          worker.onerror = () => {
+            set({ epgStatus: 'error' });
+            worker.terminate();
+          };
+          worker.postMessage({ url: fetchUrl, gzip, wantedIds: [...wanted] });
+        } catch {
+          set({ epgStatus: 'error' });
+        }
       },
 
       setHealth: (id, status) =>
@@ -355,6 +426,11 @@ export const useStore = create<StoreState>()(
       setProxyUrl: (proxyUrl) => set({ proxyUrl }),
       setProxyPolicy: (proxyPolicy) => set({ proxyPolicy }),
       setSetting: (key, v) => set({ [key]: v } as Partial<StoreState>),
+      setEpgEnabled: (v) => {
+        set({ epgEnabled: v });
+        if (v) void get().loadEpg();
+        else set({ epgByChannel: new Map(), epgStatus: 'idle' });
+      },
       removeSavedPlaylist: (id) =>
         set((s) => ({ savedPlaylists: s.savedPlaylists.filter((p) => p.id !== id) })),
 
@@ -413,6 +489,7 @@ export const useStore = create<StoreState>()(
         autoplay: s.autoplay,
         autoNextOnFailure: s.autoNextOnFailure,
         nsfwGate: s.nsfwGate,
+        epgEnabled: s.epgEnabled,
         savedPlaylists: s.savedPlaylists,
       }),
     },

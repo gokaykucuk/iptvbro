@@ -150,6 +150,22 @@ export interface RecentEntry {
   at: number;
 }
 
+/** A single EPG programme (XMLTV `<programme>`), times in epoch ms. */
+export interface Programme {
+  start: number;
+  stop: number;
+  title: string;
+  desc?: string;
+}
+
+/** Resolved now/next for a channel at a given time. */
+export interface NowNext {
+  now?: Programme;
+  next?: Programme;
+  /** 0..1 elapsed fraction of the current programme. */
+  progress: number;
+}
+
 export interface SavedPlaylist {
   id: string;
   name: string;
