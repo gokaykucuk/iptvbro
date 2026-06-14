@@ -9,6 +9,7 @@ import type {
   PlayerError,
   Programme,
   QualityLevel,
+  SubtitleTrack,
   RecentEntry,
   SavedPlaylist,
   SortKey,
@@ -67,6 +68,8 @@ export interface StoreState {
   playerError: PlayerError | null;
   levels: QualityLevel[];
   currentLevel: number | 'auto';
+  subtitleTracks: SubtitleTrack[];
+  currentSubtitle: string | null;
   volume: number;
   muted: boolean;
   isFullscreen: boolean;
@@ -121,6 +124,8 @@ export interface StoreState {
   setPlayerError: (e: PlayerError | null) => void;
   setLevels: (l: QualityLevel[]) => void;
   setCurrentLevel: (l: number | 'auto') => void;
+  setSubtitleTracks: (t: SubtitleTrack[]) => void;
+  setCurrentSubtitle: (id: string | null) => void;
   setVolume: (v: number) => void;
   setMuted: (m: boolean) => void;
   setFullscreen: (f: boolean) => void;
@@ -185,6 +190,8 @@ export const useStore = create<StoreState>()(
       playerError: null,
       levels: [],
       currentLevel: 'auto',
+      subtitleTracks: [],
+      currentSubtitle: null,
       volume: 1,
       muted: true,
       isFullscreen: false,
@@ -387,12 +394,16 @@ export const useStore = create<StoreState>()(
           zapToken: s.zapToken + 1,
           playState: id ? 'loading' : 'idle',
           playerError: null,
+          subtitleTracks: [],
+          currentSubtitle: null,
         })),
       setSelectionIndex: (selectionIndex) => set({ selectionIndex }),
       setPlayState: (playState) => set({ playState }),
       setPlayerError: (playerError) => set({ playerError, playState: playerError ? 'error' : 'idle' }),
       setLevels: (levels) => set({ levels }),
       setCurrentLevel: (currentLevel) => set({ currentLevel }),
+      setSubtitleTracks: (subtitleTracks) => set({ subtitleTracks }),
+      setCurrentSubtitle: (currentSubtitle) => set({ currentSubtitle }),
       setVolume: (volume) => set({ volume, muted: volume === 0 }),
       setMuted: (muted) => set({ muted }),
       setFullscreen: (isFullscreen) => set({ isFullscreen }),

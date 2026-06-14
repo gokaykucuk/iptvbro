@@ -10,6 +10,7 @@ import {
   PictureInPicture2,
   Radio,
   SlidersHorizontal,
+  Captions,
   Check,
 } from 'lucide-react';
 import type { PlayerApi } from '@/player/useHlsPlayer';
@@ -32,7 +33,10 @@ export function PlayerControls({ controls, visible }: PlayerControlsProps) {
   const isPiP = useStore((s) => s.isPiP);
   const levels = useStore((s) => s.levels);
   const currentLevel = useStore((s) => s.currentLevel);
+  const subtitleTracks = useStore((s) => s.subtitleTracks);
+  const currentSubtitle = useStore((s) => s.currentSubtitle);
   const [levelMenu, setLevelMenu] = useState(false);
+  const [subMenu, setSubMenu] = useState(false);
 
   const playing = playState === 'playing' || playState === 'buffering';
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
@@ -128,6 +132,51 @@ export function PlayerControls({ controls, visible }: PlayerControlsProps) {
             )}
           </div>
         )}
+        <div className="relative">
+          <IconButton
+            label="Subtitles"
+            onClick={() => setSubMenu((v) => !v)}
+            active={subMenu || currentSubtitle !== null}
+            size="md"
+            tip={false}
+          >
+            <Captions size={17} />
+          </IconButton>
+          {subMenu && (
+            <div
+              className="absolute bottom-full right-0 mb-2 w-44 overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-deep)] animate-in"
+              onMouseLeave={() => setSubMenu(false)}
+            >
+              {subtitleTracks.length === 0 ? (
+                <div className="px-3 py-2 text-[12px] text-dim">No subtitles available</div>
+              ) : (
+                <>
+                  <LevelItem
+                    label="Off"
+                    mono={false}
+                    active={currentSubtitle === null}
+                    onClick={() => {
+                      controls.setSubtitle(null);
+                      setSubMenu(false);
+                    }}
+                  />
+                  {subtitleTracks.map((t) => (
+                    <LevelItem
+                      key={t.id}
+                      label={t.label}
+                      mono={false}
+                      active={currentSubtitle === t.id}
+                      onClick={() => {
+                        controls.setSubtitle(t.id);
+                        setSubMenu(false);
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
         <IconButton label="Picture in picture" onClick={controls.togglePiP} active={isPiP} size="md" tip={false}>
           <PictureInPicture2 size={17} />
         </IconButton>
@@ -144,18 +193,28 @@ export function PlayerControls({ controls, visible }: PlayerControlsProps) {
   );
 }
 
-function LevelItem({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function LevelItem({
+  label,
+  active,
+  onClick,
+  mono = true,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  mono?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        'flex w-full items-center justify-between px-3 py-2 text-left text-[12px] hover:bg-hover',
+        'flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-[12px] hover:bg-hover',
         active ? 'text-accent' : 'text-muted',
       )}
     >
-      <span className="font-mono">{label}</span>
-      {active && <Check size={14} />}
+      <span className={cn('truncate', mono && 'font-mono')}>{label}</span>
+      {active && <Check size={14} className="shrink-0" />}
     </button>
   );
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
-import type { PlayerErrorKind, QualityLevel } from '@/types';
+import type { PlayerErrorKind, QualityLevel, SubtitleTrack } from '@/types';
 import { useStore } from '@/store/useStore';
 import { getFilteredIndices } from '@/store/selectors';
 import { planStream } from '@/lib/stream';
@@ -17,7 +17,54 @@ export interface PlayerApi {
   retry: () => void;
   goLive: () => void;
   setLevel: (l: number | 'auto') => void;
+  setSubtitle: (id: string | null) => void;
   zapBy: (delta: number) => void;
+}
+
+/** Read the available subtitle/caption tracks from the current pipeline. */
+function listSubtitles(hls: Hls | null, video: HTMLVideoElement): SubtitleTrack[] {
+  const out: SubtitleTrack[] = [];
+  if (hls) {
+    hls.subtitleTracks.forEach((t, i) =>
+      out.push({
+        id: `vtt:${i}`,
+        label: t.name || (t.lang ? t.lang.toUpperCase() : `Subtitles ${i + 1}`),
+        lang: t.lang,
+        kind: 'subtitles',
+        source: 'vtt',
+        index: i,
+      }),
+    );
+    for (let i = 0; i < video.textTracks.length; i++) {
+      const tt = video.textTracks[i];
+      if (tt.kind === 'captions') {
+        out.push({
+          id: `cc:${i}`,
+          label: tt.label || (tt.language ? tt.language.toUpperCase() : `Captions ${i + 1}`),
+          lang: tt.language,
+          kind: 'captions',
+          source: 'cc',
+          index: i,
+        });
+      }
+    }
+  } else {
+    // Native HLS (Safari): everything lives on video.textTracks.
+    for (let i = 0; i < video.textTracks.length; i++) {
+      const tt = video.textTracks[i];
+      if (tt.kind === 'subtitles' || tt.kind === 'captions') {
+        out.push({
+          id: `cc:${i}`,
+          label: tt.label || (tt.language ? tt.language.toUpperCase() : `Track ${i + 1}`),
+          lang: tt.language,
+          kind: tt.kind,
+          source: 'cc',
+          index: i,
+        });
+      }
+    }
+  }
+  return out;
 }
 
 const NATIVE_HLS_TYPE = 'application/vnd.apple.mpegurl';
@@ -113,6 +160,11 @@ export function useHlsPlayer(
       st.setHealth(ch.id, 'alive');
     };
 
+    const syncSubs = () => {
+      if (stale()) return;
+      useStore.getState().setSubtitleTracks(listSubtitles(hlsRef.current, video));
+    };
+
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
@@ -135,6 +187,9 @@ export function useHlsPlayer(
           name: lvl.name,
         }));
         useStore.getState().setLevels(levels);
+        hls.subtitleTrack = -1; // default subtitles off; user opts in
+        hls.subtitleDisplay = false;
+        syncSubs();
         void video.play().catch(() => {
           // autoplay blocked without a gesture — surface the play affordance
           if (!stale()) useStore.getState().setPlayState('paused');
@@ -151,6 +206,8 @@ export function useHlsPlayer(
         if (stale()) return;
         useStore.getState().setIsLive(Boolean(data.details.live));
       });
+
+      hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, syncSubs);
 
       hls.on(Hls.Events.ERROR, (_e, data) => {
         if (stale() || !data.fatal) return;
@@ -203,9 +260,13 @@ export function useHlsPlayer(
     }
 
     video.addEventListener('playing', onPlaying);
+    video.textTracks.addEventListener('addtrack', syncSubs);
+    video.textTracks.addEventListener('removetrack', syncSubs);
 
     return () => {
       video.removeEventListener('playing', onPlaying);
+      video.textTracks.removeEventListener('addtrack', syncSubs);
+      video.textTracks.removeEventListener('removetrack', syncSubs);
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -321,6 +382,42 @@ export function useHlsPlayer(
     useStore.getState().setCurrentLevel(l);
   }, []);
 
+  const setSubtitle = useCallback(
+    (id: string | null) => {
+      const hls = hlsRef.current;
+      const video = videoRef.current;
+      if (!video) return;
+      useStore.getState().setCurrentSubtitle(id);
+
+      if (!id) {
+        if (hls) {
+          hls.subtitleDisplay = false;
+          hls.subtitleTrack = -1;
+        }
+        for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = 'disabled';
+        return;
+      }
+
+      if (id.startsWith('vtt:') && hls) {
+        for (let i = 0; i < video.textTracks.length; i++) {
+          if (video.textTracks[i].kind === 'captions') video.textTracks[i].mode = 'disabled';
+        }
+        hls.subtitleTrack = Number(id.slice(4));
+        hls.subtitleDisplay = true;
+      } else if (id.startsWith('cc:')) {
+        const idx = Number(id.slice(3));
+        if (hls) {
+          hls.subtitleDisplay = false;
+          hls.subtitleTrack = -1;
+        }
+        for (let i = 0; i < video.textTracks.length; i++) {
+          video.textTracks[i].mode = i === idx ? 'showing' : 'disabled';
+        }
+      }
+    },
+    [videoRef],
+  );
+
   return {
     togglePlay,
     play,
@@ -332,6 +429,7 @@ export function useHlsPlayer(
     retry,
     goLive,
     setLevel,
+    setSubtitle,
     zapBy,
   };
 }

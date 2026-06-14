@@ -145,6 +145,19 @@ export interface QualityLevel {
   name?: string;
 }
 
+/** A subtitle / closed-caption track exposed by the current stream. */
+export interface SubtitleTrack {
+  /** Stable id: `vtt:<i>` for an HLS WebVTT rendition, `cc:<i>` for a native text track. */
+  id: string;
+  label: string;
+  lang?: string;
+  kind: 'subtitles' | 'captions';
+  /** 'vtt' = hls.js subtitle rendition; 'cc' = native video text track (CEA-608/708 or native HLS). */
+  source: 'vtt' | 'cc';
+  /** Index into hls.subtitleTracks (vtt) or video.textTracks (cc). */
+  index: number;
+}
+
 export interface RecentEntry {
   id: string;
   at: number;
