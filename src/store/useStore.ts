@@ -54,11 +54,14 @@ export interface StoreState {
   hide247: boolean;
   hdOnly: boolean;
   hideNsfw: boolean;
+  onlyNsfw: boolean;
   workingOnly: boolean;
   sort: SortKey;
   view: ViewKey;
   gridMode: GridMode;
   filterVersion: number;
+  /** Status of the optional channels.json (NSFW/closed) fetch. */
+  channelMetaStatus: 'idle' | 'loading' | 'ready' | 'error';
 
   // ---- player (mostly ephemeral) ----
   currentChannelId: string | null;
@@ -105,11 +108,15 @@ export interface StoreState {
   reload: () => Promise<void>;
   enrich: () => Promise<void>;
   loadEpg: () => Promise<void>;
+  loadChannelMeta: () => Promise<void>;
   setHealth: (id: string, status: HealthStatus) => void;
 
   setSearch: (s: string) => void;
   toggleFacet: (axis: 'countries' | 'categories' | 'languages', value: string) => void;
-  setQuick: (key: 'hideGeo' | 'hide247' | 'hdOnly' | 'hideNsfw' | 'workingOnly', v: boolean) => void;
+  setQuick: (
+    key: 'hideGeo' | 'hide247' | 'hdOnly' | 'hideNsfw' | 'onlyNsfw' | 'workingOnly',
+    v: boolean,
+  ) => void;
   setSort: (s: SortKey) => void;
   setView: (v: ViewKey) => void;
   setGridMode: (m: GridMode) => void;
@@ -173,11 +180,13 @@ export const useStore = create<StoreState>()(
       hide247: false,
       hdOnly: false,
       hideNsfw: false,
+      onlyNsfw: false,
       workingOnly: false,
       sort: 'az',
       view: 'all',
       gridMode: 'list',
       filterVersion: 0,
+      channelMetaStatus: 'idle',
 
       currentChannelId: null,
       selectionIndex: 0,
@@ -277,19 +286,12 @@ export const useStore = create<StoreState>()(
         if (!cat || cat.enriched) return;
         try {
           const data = await fetchEnrichment();
-          let enriched = applyEnrichment(cat, data);
-          if (get().nsfwGate) {
-            try {
-              const meta = await fetchChannelMeta();
-              enriched = applyChannelMeta(enriched, meta);
-            } catch {
-              /* heavy enrichment is best-effort */
-            }
-          }
+          const enriched = applyEnrichment(cat, data);
           set((s) => ({ catalog: enriched, catalogVersion: s.catalogVersion + 1 }));
         } catch {
           /* enrichment is non-blocking; the app works without it */
         }
+        if (get().nsfwGate) void get().loadChannelMeta();
         void get().loadEpg();
       },
 
@@ -347,6 +349,23 @@ export const useStore = create<StoreState>()(
         }
       },
 
+      loadChannelMeta: async () => {
+        const cat = get().catalog;
+        if (!cat || cat.channelMetaApplied || get().channelMetaStatus === 'loading') return;
+        set({ channelMetaStatus: 'loading' });
+        try {
+          const meta = await fetchChannelMeta();
+          const updated = applyChannelMeta(get().catalog ?? cat, meta);
+          set((s) => ({
+            catalog: updated,
+            catalogVersion: s.catalogVersion + 1,
+            channelMetaStatus: 'ready',
+          }));
+        } catch {
+          set({ channelMetaStatus: 'error' });
+        }
+      },
+
       setHealth: (id, status) =>
         set((s) => {
           const health = new Map(s.health);
@@ -362,7 +381,17 @@ export const useStore = create<StoreState>()(
           const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
           return { [axis]: next, filterVersion: s.filterVersion + 1 } as Partial<StoreState>;
         }),
-      setQuick: (key, v) => set((s) => ({ [key]: v, filterVersion: s.filterVersion + 1 }) as Partial<StoreState>),
+      setQuick: (key, v) => {
+        set((s) => {
+          const patch: Record<string, unknown> = { [key]: v, filterVersion: s.filterVersion + 1 };
+          // "Hide NSFW" and "Only NSFW" are mutually exclusive.
+          if (v && key === 'onlyNsfw') patch.hideNsfw = false;
+          if (v && key === 'hideNsfw') patch.onlyNsfw = false;
+          return patch as Partial<StoreState>;
+        });
+        // Both NSFW filters need the channels.json metadata — load it on demand.
+        if (v && (key === 'hideNsfw' || key === 'onlyNsfw')) void get().loadChannelMeta();
+      },
       setSort: (sort) => set((s) => ({ sort, filterVersion: s.filterVersion + 1 })),
       setView: (view) => set((s) => ({ view, filterVersion: s.filterVersion + 1, selectionIndex: 0 })),
       setGridMode: (gridMode) => set({ gridMode }),
@@ -376,6 +405,7 @@ export const useStore = create<StoreState>()(
           hide247: false,
           hdOnly: false,
           hideNsfw: false,
+          onlyNsfw: false,
           workingOnly: false,
           filterVersion: s.filterVersion + 1,
         })),
@@ -425,7 +455,10 @@ export const useStore = create<StoreState>()(
       setProxyEnabled: (proxyEnabled) => set({ proxyEnabled }),
       setProxyUrl: (proxyUrl) => set({ proxyUrl }),
       setProxyPolicy: (proxyPolicy) => set({ proxyPolicy }),
-      setSetting: (key, v) => set({ [key]: v } as Partial<StoreState>),
+      setSetting: (key, v) => {
+        set({ [key]: v } as Partial<StoreState>);
+        if (key === 'nsfwGate' && v) void get().loadChannelMeta();
+      },
       setEpgEnabled: (v) => {
         set({ epgEnabled: v });
         if (v) void get().loadEpg();
@@ -473,6 +506,7 @@ export const useStore = create<StoreState>()(
         hide247: s.hide247,
         hdOnly: s.hdOnly,
         hideNsfw: s.hideNsfw,
+        onlyNsfw: s.onlyNsfw,
         workingOnly: s.workingOnly,
         sort: s.sort,
         view: s.view,

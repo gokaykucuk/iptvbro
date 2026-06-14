@@ -81,18 +81,9 @@ export function ChannelList() {
 
   if (!catalog) return null;
 
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={<SearchX size={22} />}
-        title="No channels match"
-        hint="Try removing a filter or clearing your search."
-        actionLabel="Clear filters"
-        onAction={clearFilters}
-      />
-    );
-  }
-
+  // The scroll container stays mounted even when empty, so the virtualizer's
+  // scroll element is never detached/recreated (which would render a blank list
+  // when results return). The empty state renders INSIDE it.
   return (
     <div
       ref={parentRef}
@@ -101,8 +92,17 @@ export function ChannelList() {
       tabIndex={0}
       className="relative h-full overflow-y-auto outline-none"
     >
-      <div style={{ height: ready ? virtualizer.getTotalSize() : 0, width: '100%', position: 'relative' }}>
-        {ready &&
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<SearchX size={22} />}
+          title="No channels match"
+          hint="Try removing a filter or clearing your search."
+          actionLabel="Clear filters"
+          onAction={clearFilters}
+        />
+      ) : (
+        <div style={{ height: ready ? virtualizer.getTotalSize() : 0, width: '100%', position: 'relative' }}>
+          {ready &&
           virtualizer.getVirtualItems().map((vi) => {
             if (!isGrid) {
               const fi = vi.index;
@@ -164,7 +164,8 @@ export function ChannelList() {
               </div>
             );
           })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
