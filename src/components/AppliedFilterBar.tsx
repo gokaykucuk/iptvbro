@@ -8,14 +8,13 @@ import { cn } from '@/lib/cn';
 import { compactNumber } from '@/lib/format';
 import { categorySwatch } from '@/lib/constants';
 
-type QuickKey = 'hideGeo' | 'hide247' | 'hdOnly' | 'hideNsfw' | 'onlyNsfw' | 'workingOnly';
+type QuickKey = 'hideGeo' | 'hide247' | 'hdOnly' | 'hideNsfw' | 'workingOnly';
 
 const QUICK_LABELS: Record<QuickKey, string> = {
   hideGeo: 'No geo',
   hide247: '24/7',
   hdOnly: 'HD',
   hideNsfw: 'SFW',
-  onlyNsfw: 'Only NSFW',
   workingOnly: 'Working',
 };
 
@@ -46,7 +45,6 @@ export function AppliedFilterBar() {
   const hide247 = useStore((s) => s.hide247);
   const hdOnly = useStore((s) => s.hdOnly);
   const hideNsfw = useStore((s) => s.hideNsfw);
-  const onlyNsfw = useStore((s) => s.onlyNsfw);
   const workingOnly = useStore((s) => s.workingOnly);
   const sort = useStore((s) => s.sort);
   const gridMode = useStore((s) => s.gridMode);
@@ -67,7 +65,6 @@ export function AppliedFilterBar() {
     ['hide247', hide247],
     ['hdOnly', hdOnly],
     ['hideNsfw', hideNsfw],
-    ['onlyNsfw', onlyNsfw],
     ['workingOnly', workingOnly],
   ] as [QuickKey, boolean][]).filter(([, on]) => on);
 

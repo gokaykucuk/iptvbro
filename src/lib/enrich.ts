@@ -127,5 +127,5 @@ export function applyChannelMeta(
       ch.closed = m.closed;
     }
   }
-  return { ...catalog, channelMetaApplied: true };
+  return { ...catalog };
 }

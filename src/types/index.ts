@@ -100,8 +100,6 @@ export interface Catalog {
   source: string;
   /** Whether iptv-org enrichment has been merged in. */
   enriched: boolean;
-  /** Whether the heavier channels.json (NSFW / closed) metadata has been merged in. */
-  channelMetaApplied?: boolean;
 }
 
 export type HealthStatus = 'alive' | 'dead' | 'geo' | 'proxy' | 'unknown';

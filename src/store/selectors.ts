@@ -20,7 +20,6 @@ function buildCriteria(s: StoreState): FilterCriteria {
     hide247: s.hide247,
     hdOnly: s.hdOnly,
     hideNsfw: s.hideNsfw,
-    onlyNsfw: s.onlyNsfw,
     workingOnly: s.workingOnly,
     sort: s.sort,
   };
@@ -99,7 +98,6 @@ export function useActiveFilterCount(): number {
       (s.hide247 ? 1 : 0) +
       (s.hdOnly ? 1 : 0) +
       (s.hideNsfw ? 1 : 0) +
-      (s.onlyNsfw ? 1 : 0) +
       (s.workingOnly ? 1 : 0),
   );
 }

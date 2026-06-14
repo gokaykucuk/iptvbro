@@ -8,7 +8,7 @@ import { cn } from '@/lib/cn';
 import { codeToFlag, compactNumber } from '@/lib/format';
 import { categorySwatch } from '@/lib/constants';
 
-type QuickKey = 'hideGeo' | 'hide247' | 'hdOnly' | 'hideNsfw' | 'onlyNsfw' | 'workingOnly';
+type QuickKey = 'hideGeo' | 'hide247' | 'hdOnly' | 'hideNsfw' | 'workingOnly';
 
 const QUICK_ROWS: { key: QuickKey; label: string }[] = [
   { key: 'workingOnly', label: 'Working only' },
@@ -16,7 +16,6 @@ const QUICK_ROWS: { key: QuickKey; label: string }[] = [
   { key: 'hide247', label: 'Hide not 24/7' },
   { key: 'hdOnly', label: 'HD only' },
   { key: 'hideNsfw', label: 'Hide NSFW' },
-  { key: 'onlyNsfw', label: 'Only NSFW' },
 ];
 
 const FACET_LIMIT = 60;
@@ -103,7 +102,6 @@ export function FilterRail() {
   const hide247 = useStore((s) => s.hide247);
   const hdOnly = useStore((s) => s.hdOnly);
   const hideNsfw = useStore((s) => s.hideNsfw);
-  const onlyNsfw = useStore((s) => s.onlyNsfw);
 
   const quickValues: Record<QuickKey, boolean> = {
     workingOnly,
@@ -111,7 +109,6 @@ export function FilterRail() {
     hide247,
     hdOnly,
     hideNsfw,
-    onlyNsfw,
   };
 
   const countryCounts = useFacetCounts('country');

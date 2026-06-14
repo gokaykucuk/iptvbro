@@ -20,7 +20,6 @@ export interface FilterCriteria {
   hide247: boolean;
   hdOnly: boolean;
   hideNsfw: boolean;
-  onlyNsfw: boolean;
   workingOnly: boolean;
   sort: SortKey;
 }
@@ -194,7 +193,6 @@ export function candidateIndices(
     if (c.hide247 && ch.not247) continue;
     if (c.hdOnly && !isHd(ch)) continue;
     if (c.hideNsfw && ch.nsfw) continue;
-    if (c.onlyNsfw && !ch.nsfw) continue;
     if (c.workingOnly && channelHealth(ch, health) === 'dead') continue;
     out.push(i);
   }
