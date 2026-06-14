@@ -30,7 +30,7 @@ Load any M3U playlist — including the [iptv-org](https://github.com/iptv-org/i
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5190
 ```
 
 Open the app and click **“Load the iptv-org playlist”**, paste any M3U URL, or drop an `.m3u` file.
